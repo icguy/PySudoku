@@ -39,8 +39,9 @@ class Grid:
         return lines[0]
 
     def _grid(self, lines):
-        th = setgrid(lines)
-        print th * rad2deg
+        th = setgrid(lines, np.copy(self.image))
+        cv2.waitKey()
+        # print th * rad2deg
 
 rad90 = np.pi / 2
 rad180 = np.pi
@@ -55,34 +56,18 @@ rho_wind = 20
 
 # Todo: minimize sine, cosine calculations
 
-def setgrid(lines):
-    o_pos = (0, 0)
-
-    n = len(lines)
+def setgrid(lines, img):
     o_rho = [l[0] for l in lines]
     o_phi = [l[1] for l in lines]
-    rho = []
     phi = o_phi[:]
 
     # theta meanshift
     theta, indices = periodicmean(phi, None, rad90, theta_wind)
 
-    return theta
-
     # separate data from error
-    if indices is not None:
-        nrho = []
-        nphi = []
-        if len(indices) < n:
-            # print "selection"
-            for i in indices:
-                nrho.append(o_rho[i])
-                nphi.append(o_phi[i])
-            rho = nrho
-            phi = nphi
-        else:
-            rho = o_rho
-            phi = o_phi
+    assert indices is not None
+    rho = [o_rho[i] for i in indices]
+    phi = [o_phi[i] for i in indices]
 
     rho1 = []
     phi1 = []
@@ -91,7 +76,7 @@ def setgrid(lines):
 
     # separate horizontal and vertical
     for i in range(0, len(rho)):
-        if (phi[i] > theta - rad45 and phi[i] < theta + rad45):
+        if theta - rad45 < phi[i] < theta + rad45:
             phi1.append(phi[i])
             rho1.append(rho[i])
         elif phi[i] > theta + 3 * rad45:
@@ -106,44 +91,42 @@ def setgrid(lines):
     theta1 = theta
     theta2 = (theta + rad90)
 
-    # drawlines(img, rho1, phi1, (0,128,255)) #narancs
-    # drawlines(img, rho2, phi2, (255,128,0)) #vilagoskek
+    # print theta1 * rad2deg
+    # print theta2 * rad2deg
+    # print rho1
+    # print rho2
+    # print [phi * rad2deg for phi in phi1]
+    # print [phi * rad2deg for phi in phi2]
 
-    # rho meanshift
-    arho1, indices1 = periodicmean(rho1, None, rho_period, rho_wind)
-    arho2, indices2 = periodicmean(rho2, None, rho_period, rho_wind)
+    img2 = np.copy(img)
+    drawlines(img2, rho1, phi1, (0, 128, 255))  # narancs
+    drawlines(img2, rho2, phi2, (255, 128, 0))  # vilagoskek
+    cv2.imshow("lines", img2)
+    cv2.waitKey()
 
-    # if arho1 is not None \
-    #         and arho2 is not None \
-    #         and theta1 is not None \
-    #         and theta2 is not None:
-    #
-    #     new_theta = theta1
-    #     diffth = -1
-    #
-    #     s1 = np.sin(theta1)
-    #     c1 = np.cos(theta1)
-    #     s2 = np.sin(theta2)
-    #     c2 = np.cos(theta2)
-    #     xx = (arho1 * s2 - arho2 * s1) / (c1 * s2 - c2 * s1)
-    #     yy = (arho1 - xx * c1) / s1  # coords of intersection of lines
-    #
-    #     flip = -1
-    #     vec0 = ((xx - size[1] / 2) * flip, (yy - size[0] / 2) * flip)
-    #     vec1 = rotatevector(vec0, -new_theta)
-    #     vec2x, diffx = closestperiod(o_pos[0], vec1[0], rho_period)
-    #     vec2y, diffy = closestperiod(o_pos[1], vec1[1], rho_period)
-    #     vec2 = (vec2x, vec2y)
-    #     new_pos = vec2
-    #
-    #     # cv2.imshow("lines",img)
-    #     new_pos, new_theta = pointtoworld(new_pos, new_theta)
-    #
-    #     return new_pos, new_theta
+    rho1 = [adjustLine(rho1[i], phi1[i], theta1, img.shape) for i in range(len(rho1))]
+    rho2 = [adjustLine(rho2[i], phi2[i], theta2, img.shape) for i in range(len(rho2))]
+    phi1 = [theta1 for i in range(len(phi1))]
+    phi2 = [theta2 for i in range(len(phi2))]
 
-    # cv2.imshow("lines",img)
-    
-    return pointtoworld(o_pos, theta)
+    drawlines(img, rho1, phi1, (0,128,255)) #narancs
+    drawlines(img, rho2, phi2, (255,128,0)) #vilagoskek
+    cv2.imshow("lines", img)
+
+def adjustLine(rho, phi, theta, size):
+    s = np.sin(phi)
+    c = np.cos(phi)
+    print size
+    h, w, ch = size
+    pts = [(0, rho/s), (rho/c, 0), (w, (rho-w*c)/s), ((rho-h*s)/c, h)]
+    pts = [pt for pt in pts if w + 1 > pt[0] > -1 and h + 1 > pt[1] > -1]
+
+    x1, y1 = pts[0]
+    x2, y2 = pts[1]
+    mx, my = (x1 + x2)/2, (y1 + y2)/2
+    st, ct = np.sin(theta), np.cos(theta)
+    rho2 = mx*ct + my*st
+    return rho2
 
 def drawdebug(img, theta1, theta2, arho1, arho2, o_theta, size):
     s1 = np.sin(theta1)
@@ -186,9 +169,9 @@ def periodicmean(array, initial, period, meanwindow, meanshift_it=2):
         for i in range(0, n):
             array[i] = (array[i] + period / 2) % period - period / 2
 
-            # initial guess
+    # initial guess
     if initial is None:
-        initial = 0
+        initial = 0.0
         for a in array:
             initial += a
         initial /= n
@@ -254,7 +237,7 @@ def rotatevector_cs(vector, sinangle, cosangle):
     y = vector[1]
     return (x * c - y * s, x * s + y * c)
 
-def drawlines(tex, rho, phi, color, thickness=1):
+def drawlines(tex, rho, phi, colorImg, thickness=1):
     for r, p in zip(rho, phi):
         a = np.cos(p)
         b = np.sin(p)
@@ -264,7 +247,7 @@ def drawlines(tex, rho, phi, color, thickness=1):
         y1 = int(y0 + 1000 * (a))
         x2 = int(x0 - 1000 * (-b))
         y2 = int(y0 - 1000 * (a))
-        cv2.line(tex, (x1, y1), (x2, y2), color, thickness)
+        cv2.line(tex, (x1, y1), (x2, y2), colorImg, thickness)
 
 def drawpoint(tex, x, y, size, color, thickness=1):
     x = int(x)
@@ -298,8 +281,8 @@ def Main():
 if __name__ == '__main__':
     Main()
 
-
 if __name__ == '__main__':
-    fname = """D:\dokumentumok\Python\SudokuSolver\images\img1_4_rot.png"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_4.jpg"""
     g = Grid(fname)
     g.getGrid()
