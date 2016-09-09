@@ -11,9 +11,11 @@ class Grid:
         img = self.image
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         thr = self._threshold(gray)
+        cv2.imshow("thr", thr)
+        cv2.waitKey()
         lines = self._lines(thr)
+        drawlines2(img, lines)
         self._grid(lines)
-        self._lines(thr)
 
     def _threshold(self, img):
         mblur = cv2.medianBlur(img, 5)
@@ -40,8 +42,6 @@ class Grid:
 
     def _grid(self, lines):
         th = setgrid(lines, np.copy(self.image))
-        cv2.waitKey()
-        # print th * rad2deg
 
 rad90 = np.pi / 2
 rad180 = np.pi
@@ -85,38 +85,35 @@ def setgrid(lines, img):
         else:
             phi2.append(phi[i])
             rho2.append(rho[i])
-    
 
     # final theta values
     theta1 = theta
     theta2 = (theta + rad90)
 
-    # print theta1 * rad2deg
-    # print theta2 * rad2deg
-    # print rho1
-    # print rho2
-    # print [phi * rad2deg for phi in phi1]
-    # print [phi * rad2deg for phi in phi2]
+    pts = [[intersect(rho1[i], phi1[i], rho2[j], phi2[j]) for j in range(len(rho2))] for i in range(len(rho1))]
 
-    img2 = np.copy(img)
-    drawlines(img2, rho1, phi1, (0, 128, 255))  # narancs
-    drawlines(img2, rho2, phi2, (255, 128, 0))  # vilagoskek
-    cv2.imshow("lines", img2)
+    for row in pts:
+        for x,y in row:
+            drawpoint(img, x, y, 10, (255, 0, 0), 1)
+
+    drawlines(img, rho1, phi1, (0, 128, 255))  # narancs
+    drawlines(img, rho2, phi2, (255, 128, 0))  # vilagoskek
+    cv2.imshow("lines", img)
     cv2.waitKey()
 
-    rho1 = [adjustLine(rho1[i], phi1[i], theta1, img.shape) for i in range(len(rho1))]
-    rho2 = [adjustLine(rho2[i], phi2[i], theta2, img.shape) for i in range(len(rho2))]
-    phi1 = [theta1 for i in range(len(phi1))]
-    phi2 = [theta2 for i in range(len(phi2))]
-
-    drawlines(img, rho1, phi1, (0,128,255)) #narancs
-    drawlines(img, rho2, phi2, (255,128,0)) #vilagoskek
-    cv2.imshow("lines", img)
+def intersect(rho1, phi1, rho2, phi2):
+    A = np.array([[np.cos(phi1), np.sin(phi1)],
+                  [np.cos(phi2), np.sin(phi2)]])
+    b = np.array([[rho1, rho2]]).T
+    pt = np.linalg.solve(A, b).reshape((2,))
+    return pt[0], pt[1]
 
 def adjustLine(rho, phi, theta, size):
     s = np.sin(phi)
     c = np.cos(phi)
-    print size
+    if s == 0: s = 0.001
+    if c == 0: c = 0.001
+
     h, w, ch = size
     pts = [(0, rho/s), (rho/c, 0), (w, (rho-w*c)/s), ((rho-h*s)/c, h)]
     pts = [pt for pt in pts if w + 1 > pt[0] > -1 and h + 1 > pt[1] > -1]
@@ -237,7 +234,7 @@ def rotatevector_cs(vector, sinangle, cosangle):
     y = vector[1]
     return (x * c - y * s, x * s + y * c)
 
-def drawlines(tex, rho, phi, colorImg, thickness=1):
+def drawlines(tex, rho, phi, color, thickness=1):
     for r, p in zip(rho, phi):
         a = np.cos(p)
         b = np.sin(p)
@@ -247,16 +244,35 @@ def drawlines(tex, rho, phi, colorImg, thickness=1):
         y1 = int(y0 + 1000 * (a))
         x2 = int(x0 - 1000 * (-b))
         y2 = int(y0 - 1000 * (a))
-        cv2.line(tex, (x1, y1), (x2, y2), colorImg, thickness)
+        cv2.line(tex, (x1, y1), (x2, y2), color, thickness)
 
-def drawpoint(tex, x, y, size, color, thickness=1):
+def drawlines2(img, lines):
+    img = np.copy(img)
+    for rho, theta in lines:
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int(x0 + 1000 * (-b))
+        y1 = int(y0 + 1000 * (a))
+        x2 = int(x0 - 1000 * (-b))
+        y2 = int(y0 - 1000 * (a))
+
+        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+    cv2.imshow("img", img)
+    cv2.waitKey()
+
+def drawpoint(tex, x, y, size, color, thickness=1, circle = True):
     x = int(x)
     y = int(y)
     hs = size / 2
-    cv2.line(tex, (x - hs, y - hs), (x + hs, y - hs), color, thickness)
-    cv2.line(tex, (x - hs, y - hs), (x - hs, y + hs), color, thickness)
-    cv2.line(tex, (x + hs, y + hs), (x + hs, y - hs), color, thickness)
-    cv2.line(tex, (x + hs, y + hs), (x - hs, y + hs), color, thickness)
+    if not circle:
+        cv2.line(tex, (x - hs, y - hs), (x + hs, y - hs), color, thickness)
+        cv2.line(tex, (x - hs, y - hs), (x - hs, y + hs), color, thickness)
+        cv2.line(tex, (x + hs, y + hs), (x + hs, y - hs), color, thickness)
+        cv2.line(tex, (x + hs, y + hs), (x - hs, y + hs), color, thickness)
+    else:
+        cv2.circle(tex, (x, y), size, color, thickness)
 
 def closestperiod(orig, new, period):
     diff = orig - new
@@ -283,6 +299,7 @@ if __name__ == '__main__':
 
 if __name__ == '__main__':
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\img1_4.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_3.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\ext5.jpg"""
     g = Grid(fname)
     g.getGrid()
