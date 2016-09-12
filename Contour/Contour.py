@@ -4,19 +4,25 @@ from pprint import pprint
 
 fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
 fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
-fname = """D:\dokumentumok\Python\PySudoku\images\ext6.jpg"""
+fname = """D:\dokumentumok\Python\PySudoku\images\ext4.jpg"""
 
 im = cv2.imread(fname)
+minsize = min(*im.shape[:2])
+print "minsize: %d" % minsize
+
+kernel_size = 5 if minsize > 600 else 3
+
 imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-mblur = cv2.medianBlur(imgray, 5)
+mblur = cv2.medianBlur(imgray, kernel_size)
 mmin, mmax = np.min(mblur), np.max(mblur)
 mblur = np.uint8((mblur - mmin) * 255.0 / (mmax - mmin))
 
 cv2.imshow("mbl", mblur)
 cv2.waitKey()
 
-thr = cv2.adaptiveThreshold(mblur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 5, 10)
-# thr = cv2.Canny(mblur, 30, 150)
+thr = cv2.adaptiveThreshold(mblur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, kernel_size, 10)
+thr2 = cv2.Canny(mblur, 30, 150)
+thr = thr | thr2
 
 cv2.imshow("thr", thr)
 cv2.waitKey()
@@ -38,7 +44,7 @@ area = h * w
 contours = [c for c in contours if cv2.contourArea(c) > area / 8]
 print  len(contours)
 contours = [cv2.approxPolyDP(c, 20, True) for c in contours]
-
+print contours
 
 cv2.drawContours(im, contours, -1, (255, 0, 0), 3)
 cv2.imshow("im", im)
