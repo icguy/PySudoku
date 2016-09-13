@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 from pprint import pprint
-import random
 
 DISP = True
-WAIT = False
+WAIT = True
 
 def disp(name, img, wait = True):
     if DISP:
@@ -16,7 +15,7 @@ if __name__ == '__main__':
 
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\ext4.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\ext1.jpg"""
 
     im = cv2.imread(fname)
     minsize = min(*im.shape[:2])
@@ -53,20 +52,16 @@ if __name__ == '__main__':
     contours = [c for c in contours if cv2.contourArea(c) > area / 8]
     print  len(contours)
     contours = [cv2.approxPolyDP(c, 20, True) for c in contours]
-    print contours
+    print  len(contours)
+    contours = [c for c in contours if c.shape[0] == 4]
+    print  len(contours)
 
-    marker_corners = np.array([[0,0],[1, 0], [1,1], [0,1]], dtype=np.float32).reshape(-1, 1, 2)
+    marker_corners = np.array([[0,0,0],[1, 0, 0], [1,1, 0], [0,1, 0]], dtype=np.float32)
     for c in contours:
-        H, mask = cv2.findHomography(np.float32(c).reshape(-1, 1, 2), marker_corners)
-        num_pt = marker_corners.shape[0]
-        corners = np.ones((num_pt, 3), np.float32)
-        marker_corners2 = np.copy(marker_corners).reshape(num_pt, 2)
-        corners[:, :2] = marker_corners2
-        print H, corners
-        new_c = corners.dot(np.linalg.inv(H.T))
-        for i in range(new_c.shape[0]):
-            new_c[i,:] /=new_c[i,2]
-        print new_c
+        c = np.float32(c.reshape(-1, 2))
+        rv, rvec, tvec = cv2.solvePnP(marker_corners, c, np.eye(3), None, flags=cv2.CV_ITERATIVE)
+        print tvec, rvec
+
 
     cv2.drawContours(im, contours, -1, (255, 0, 0), 3)
     disp("im", im)
