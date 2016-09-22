@@ -52,7 +52,7 @@ def test():
     sizes = [(indices == i).sum() for i in range(1, num)]
     maxSize = max(sizes)
     maxIdx = sizes.index(maxSize) + 1
-    print maxIdx
+    # print maxIdx
 
     largeBg = np.zeros_like(img)
     largeBg[indices == maxIdx] = 255
@@ -62,18 +62,18 @@ def test():
     for row in range(h):
         if outside[row, 0] == 0 and largeBg[row, 0] == 0:
             cv2.floodFill(largeBg, outside, (0, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            print  outside
+            # print  outside
         if outside[row, w - 1] == 0 and largeBg[row, w - 1] == 0:
             cv2.floodFill(largeBg, outside, (w - 1, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            print  outside
+            # print  outside
 
     for col in range(w):
         if outside[0, col] == 0 and largeBg[0, col] == 0:
             cv2.floodFill(largeBg, outside, (col, 0), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            print  outside
+            # print  outside
         if outside[h - 1, col] == 0 and largeBg[h - 1, col] == 0:
             cv2.floodFill(largeBg, outside, (col, h - 1), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            print  outside
+            # print  outside
 
     mmin, mmax = np.min(outside), np.max(outside)
     outside = np.uint8((outside - mmin) * 255.0 / (mmax - mmin))
@@ -84,34 +84,32 @@ def test():
     img = img + background
     img = 255 - img
 
-    # cv2.imshow("bg", largeBg)
-    # cv2.imshow("out", outside)
-    # cv2.imshow("all", largeBg + outside)
-    # cv2.imshow("res", img)
-    # cv2.waitKey()
-
-    img2 = img.copy()
-    cv2.imshow("img2", img2)
-    cv2.waitKey()
-    img2[indices == maxIdx] = 0
-    cv2.imshow("img2", img2)
-    cv2.waitKey()
-
-    #centering
-    mts = cv2.moments(img, True)
-    x, y = mts['m10'] / mts['m00'], mts['m01']/mts['m00']
-    print  x, y
-    dx = img.shape[1] / 2.0 - x
-    dy = img.shape[0] / 2.0 - y
+    # centering
+    dx, dy = get_cog(img)
     trf = np.float32([[1, 0, dx, 0, 1, dy]]).reshape(2, 3)
     img = cv2.warpAffine(img, trf, img.shape)
 
-
-
-    img2 = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    cv2.circle(img2, (int(x),int(y)), 5, (0, 0, 255))
-    cv2.imshow("asd", img2)
+    cv2.imshow("fn.png", img)
     cv2.waitKey()
+
+
+def get_cog(img):
+    h, w = img.shape
+
+    cx, cy = 0.0, 0.0
+    num = 0
+    for r in range(h):
+        for c in range(w):
+            if img[r, c] == 255:
+                num += 1
+                cx += c
+                cy += r
+    cx /= num
+    cy /= num
+    dx = w / 2.0 - cx
+    dy = h / 2.0 - cy
+    return dx, dy
+
 
 
 if __name__ == '__main__':
