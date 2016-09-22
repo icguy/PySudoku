@@ -43,23 +43,29 @@ def test():
     # img = cv2.imread("""images/blob_test2.png""", 0)
     # img = cv2.imread("""images/blob_test3.png""", 0)
 
+    img = extract_digit(img)
+
+    cv2.imshow("fn.png", img)
+    cv2.waitKey()
+
+
+def extract_digit(img, invert = False):
     h, w = img.shape
     mmin, mmax = np.min(img), np.max(img)
     img_norm = np.uint8((img - mmin) * 255.0 / (mmax - mmin))
     r, img = cv2.threshold(img_norm, 128, 255, cv2.THRESH_BINARY)
 
-    #finding largest background
+    # finding largest background
     indices, num = indexObjects(img)
     sizes = [(indices == i).sum() for i in range(1, num)]
     maxSize = max(sizes)
     maxIdx = sizes.index(maxSize) + 1
-    # print maxIdx
 
     largeBg = np.zeros_like(img)
     largeBg[indices == maxIdx] = 255
     outside = np.zeros((h + 2, w + 2), "uint8")
 
-    #filling outside
+    # filling outside
     for row in range(h):
         if outside[row, 0] == 0 and largeBg[row, 0] == 0:
             cv2.floodFill(largeBg, outside, (0, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
@@ -67,7 +73,6 @@ def test():
         if outside[row, w - 1] == 0 and largeBg[row, w - 1] == 0:
             cv2.floodFill(largeBg, outside, (w - 1, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
             # print  outside
-
     for col in range(w):
         if outside[0, col] == 0 and largeBg[0, col] == 0:
             cv2.floodFill(largeBg, outside, (col, 0), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
@@ -88,19 +93,8 @@ def test():
     # bounding box
     U, D, L, R = get_bounding_box(img)
 
-    # color = cv2.cvtColor(img_norm, cv2.COLOR_GRAY2RGB)
-    # cv2.line(color, (L, U), (R, U), (255, 0, 255))
-    # cv2.line(color, (L, U), (L, D), (255, 0, 255))
-    # cv2.line(color, (R, D), (R, U), (255, 0, 255))
-    # cv2.line(color, (R, D), (L, D), (255, 0, 255))
-    # cv2.imshow("c", color)
-    # cv2.waitKey()
-
-    #warp image
     img = warp_bounding(U, D, L, R, img_norm)
-
-    cv2.imshow("fn.png", img)
-    cv2.waitKey()
+    return img
 
 
 def get_bounding_box(img):
@@ -124,11 +118,12 @@ def get_bounding_box(img):
 
     return U, D, L, R
 
-def warp_bounding(U, D, L, R, img_norm):
+def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20)):
+    w, h = newsize
     pts1 = np.float32([[L, U], [R, U], [R, D]])
-    pts2 = np.float32([[0, 0], [20, 0], [20, 20]])
+    pts2 = np.float32([[0, 0], [w, 0], [w, h]])
     trf = cv2.getAffineTransform(pts1, pts2)
-    return cv2.warpAffine(img_norm, trf, (20, 20))
+    return cv2.warpAffine(img_norm, trf, (h, w))
 
 def get_cog(img):
     h, w = img.shape
@@ -163,6 +158,8 @@ if __name__ == '__main__':
     # Now we prepare train_data and test_data.
     train = x[:,:50].reshape(-1,400).astype(np.float32) # Size = (2500,400)
     test = x[:,50:100].reshape(-1,400).astype(np.float32) # Size = (2500,400)
+
+    cv2.imwrite("trn.png", train)
 
     # Create labels for train and test data
     k = np.arange(10)
