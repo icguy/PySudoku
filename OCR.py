@@ -49,53 +49,59 @@ def test():
     cv2.waitKey()
 
 
-def extract_digit(img, invert = False):
+def extract_digit(img, invert = False, skip_bg = False):
     h, w = img.shape
+    if invert: img = 255 - img
     mmin, mmax = np.min(img), np.max(img)
     img_norm = np.uint8((img - mmin) * 255.0 / (mmax - mmin))
     r, img = cv2.threshold(img_norm, 128, 255, cv2.THRESH_BINARY)
 
-    # finding largest background
-    indices, num = indexObjects(img)
-    sizes = [(indices == i).sum() for i in range(1, num)]
-    maxSize = max(sizes)
-    maxIdx = sizes.index(maxSize) + 1
+    if not skip_bg:
+        # finding largest background
+        indices, num = indexObjects(img)
+        sizes = [(indices == i).sum() for i in range(1, num)]
+        maxSize = max(sizes)
+        maxIdx = sizes.index(maxSize) + 1
 
-    largeBg = np.zeros_like(img)
-    largeBg[indices == maxIdx] = 255
-    outside = np.zeros((h + 2, w + 2), "uint8")
+        largeBg = np.zeros_like(img)
+        largeBg[indices == maxIdx] = 255
+        outside = np.zeros((h + 2, w + 2), "uint8")
 
-    # filling outside
-    for row in range(h):
-        if outside[row, 0] == 0 and largeBg[row, 0] == 0:
-            cv2.floodFill(largeBg, outside, (0, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            # print  outside
-        if outside[row, w - 1] == 0 and largeBg[row, w - 1] == 0:
-            cv2.floodFill(largeBg, outside, (w - 1, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            # print  outside
-    for col in range(w):
-        if outside[0, col] == 0 and largeBg[0, col] == 0:
-            cv2.floodFill(largeBg, outside, (col, 0), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            # print  outside
-        if outside[h - 1, col] == 0 and largeBg[h - 1, col] == 0:
-            cv2.floodFill(largeBg, outside, (col, h - 1), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
-            # print  outside
+        # filling outside
+        for row in range(h):
+            if outside[row, 0] == 0 and largeBg[row, 0] == 0:
+                cv2.floodFill(largeBg, outside, (0, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
+                # print  outside
+            if outside[row, w - 1] == 0 and largeBg[row, w - 1] == 0:
+                cv2.floodFill(largeBg, outside, (w - 1, row), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
+                # print  outside
+        for col in range(w):
+            if outside[0, col] == 0 and largeBg[0, col] == 0:
+                cv2.floodFill(largeBg, outside, (col, 0), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
+                # print  outside
+            if outside[h - 1, col] == 0 and largeBg[h - 1, col] == 0:
+                cv2.floodFill(largeBg, outside, (col, h - 1), 255, 0, 0, cv2.FLOODFILL_MASK_ONLY)
+                # print  outside
 
-    mmin, mmax = np.min(outside), np.max(outside)
-    outside = np.uint8((outside - mmin) * 255.0 / (mmax - mmin))
-    outside = outside[1:-1, 1:-1]
+        mmin, mmax = np.min(outside), np.max(outside)
+        if mmax > 0:
+            outside = np.uint8((outside - mmin) * 255.0 / (mmax - mmin))
+        outside = outside[1:-1, 1:-1]
 
-    # erasing bg
-    background = largeBg + outside
-    img = img + background
+        # erasing bg
+        background = largeBg + outside
+        img = img + background
     img = 255 - img
+
+    # cv2.imshow("i", img)
+    # cv2.waitKey()
+
 
     # bounding box
     U, D, L, R = get_bounding_box(img)
 
     img = warp_bounding(U, D, L, R, img_norm)
     return img
-
 
 def get_bounding_box(img):
 
@@ -123,7 +129,7 @@ def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20)):
     pts1 = np.float32([[L, U], [R, U], [R, D]])
     pts2 = np.float32([[0, 0], [w, 0], [w, h]])
     trf = cv2.getAffineTransform(pts1, pts2)
-    return cv2.warpAffine(img_norm, trf, (h, w))
+    return cv2.warpAffine(img_norm, trf, (w, h))
 
 def get_cog(img):
     h, w = img.shape
@@ -143,8 +149,8 @@ def get_cog(img):
     return dx, dy
 
 if __name__ == '__main__':
-    test()
-    exit()
+    # test()
+    # exit()
 
     img = cv2.imread("""D:\dokumentumok\opencv\sources\samples\data\digits.png""")
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -154,6 +160,15 @@ if __name__ == '__main__':
 
     # Make it into a Numpy array. It size will be (50,100,20,20)
     x = np.array(cells)
+
+    gray2 = gray.copy()
+    for i in range(0, 50):
+        print i
+        for j in range(0, 100):
+            gray2[i*20:i*20+20,j*20:j*20+20] = extract_digit(x[i,j], True, True)
+
+    cv2.imwrite("digits3.png", gray2)
+
 
     # Now we prepare train_data and test_data.
     train = x[:,:50].reshape(-1,400).astype(np.float32) # Size = (2500,400)
