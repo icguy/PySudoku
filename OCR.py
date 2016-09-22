@@ -41,11 +41,12 @@ def test():
     # img = cv2.imread("""images/img1_2.jpg""", 0)
     # img = cv2.imread("""images/blob_test.png""", 0)
     # img = cv2.imread("""images/blob_test2.png""", 0)
+    # img = cv2.imread("""images/blob_test3.png""", 0)
 
     h, w = img.shape
     mmin, mmax = np.min(img), np.max(img)
-    img = np.uint8((img - mmin) * 255.0 / (mmax - mmin))
-    r, img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY)
+    img_norm = np.uint8((img - mmin) * 255.0 / (mmax - mmin))
+    r, img = cv2.threshold(img_norm, 128, 255, cv2.THRESH_BINARY)
 
     #finding largest background
     indices, num = indexObjects(img)
@@ -84,14 +85,50 @@ def test():
     img = img + background
     img = 255 - img
 
-    # centering
-    dx, dy = get_cog(img)
-    trf = np.float32([[1, 0, dx, 0, 1, dy]]).reshape(2, 3)
-    img = cv2.warpAffine(img, trf, img.shape)
+    # bounding box
+    U, D, L, R = get_bounding_box(img)
+
+    # color = cv2.cvtColor(img_norm, cv2.COLOR_GRAY2RGB)
+    # cv2.line(color, (L, U), (R, U), (255, 0, 255))
+    # cv2.line(color, (L, U), (L, D), (255, 0, 255))
+    # cv2.line(color, (R, D), (R, U), (255, 0, 255))
+    # cv2.line(color, (R, D), (L, D), (255, 0, 255))
+    # cv2.imshow("c", color)
+    # cv2.waitKey()
+
+    #warp image
+    img = warp_bounding(U, D, L, R, img_norm)
 
     cv2.imshow("fn.png", img)
     cv2.waitKey()
 
+
+def get_bounding_box(img):
+
+    h, w = img.shape
+    U = h
+    D = 0
+    L = w
+    R = 0
+    for r in range(h):
+        for c in range(w):
+            if img[r, c] == 255:
+                if r < U:
+                    U = r
+                if r > D:
+                    D = r
+                if c < L:
+                    L = c
+                if c > R:
+                    R = c
+
+    return U, D, L, R
+
+def warp_bounding(U, D, L, R, img_norm):
+    pts1 = np.float32([[L, U], [R, U], [R, D]])
+    pts2 = np.float32([[0, 0], [20, 0], [20, 20]])
+    trf = cv2.getAffineTransform(pts1, pts2)
+    return cv2.warpAffine(img_norm, trf, (20, 20))
 
 def get_cog(img):
     h, w = img.shape
@@ -109,8 +146,6 @@ def get_cog(img):
     dx = w / 2.0 - cx
     dy = h / 2.0 - cy
     return dx, dy
-
-
 
 if __name__ == '__main__':
     test()
