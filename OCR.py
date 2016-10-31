@@ -55,7 +55,6 @@ def test():
 
 def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = False):
     """
-
     :param img:
     :param invert: True if background is black (zero), foreground is white (255)
     :param skip_bg: set True if there's only the digit itself in the image no other BLOB-s
