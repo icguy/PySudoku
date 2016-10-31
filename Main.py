@@ -60,15 +60,15 @@ def get_knn():
 
 if __name__ == '__main__':
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
-    # fname = """D:\dokumentumok\Python\PySudoku\images\img1_2.jpg"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\extA.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_3.jpg"""
+    # fname = """D:\dokumentumok\Python\PySudoku\images\extA.jpg"""
 
     im = cv2.imread(fname)
     contour = find_contour(im)
     # cv2.drawContours(im, contour, -1, (255, 0, 0), 3)
     # cv2.imshow("", im)
-    im2 = transform(im, contour)
-    cv2.imshow("trf", im2)
+    im2, trf = transform(im, contour)
+    # cv2.imshow("trf", im2)
 
     knn = get_knn()
     step = 50
@@ -80,7 +80,7 @@ if __name__ == '__main__':
             digit_img = cv2.cvtColor(digit_img, cv2.COLOR_BGR2GRAY)
             extr = extract_digit(digit_img, preserveAspectRatio=True, newsize=(20, 20))
             if extr is not None:
-                cv2.imshow("extr", extr)
+                # cv2.imshow("extr", extr)
                 extr = 255 - extr.reshape((1, 400)).astype("float32")
                 ret, result, neighbours, dist = knn.find_nearest(extr,k=6)
                 print result, neighbours, dist
@@ -88,11 +88,38 @@ if __name__ == '__main__':
             else:
                 print "empty"
                 table[i][j] = '.'
-            cv2.imshow("digit", digit_img)
+            # cv2.imshow("digit", digit_img)
             # cv2.waitKey()
+
     for i in range(9):
         s = ""
         for j in range(9):
             s = s + str(table[i][j])
         print s
+
+    for i in range(9):
+        for j in range(9):
+            if not (1 <= table[i][j] <= 9):
+                table[i][j] = -1
+
+    st = SolvingTable(table)
+    st.SolveBackTrack()
+    solved = st.getTable()
+    for i in range(9):
+        for j in range(9):
+            if table[i][j] == -1:
+                pos = np.array([[25 + 50 * j, 25 + 50 * i, 1]], dtype=float).T
+                pos2 = np.linalg.inv(trf).dot(pos)
+                pos2 /= pos2[2]
+                text = str(solved[i][j])
+                scale, thickness = 0.75, 2
+                size, base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
+                w, h = size
+                pos2[0] -= w / 2.0
+                pos2[1] += h / 2.0
+                cv2.putText(im, text, (pos2[0], pos2[1]), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 128), thickness)
+
+    cv2.imshow("slv", im)
+
+
     cv2.waitKey()
