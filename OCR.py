@@ -54,6 +54,13 @@ def test():
     cv2.waitKey()
 
 def extract_digit(img, invert = False, skip_bg = False):
+    """
+
+    :param img:
+    :param invert: True if background is black (zero), foreground is white (255)
+    :param skip_bg: 
+    :return:
+    """
     h, w = img.shape
     if invert: img = 255 - img
     mmin, mmax = np.min(img), np.max(img)
