@@ -11,23 +11,29 @@ def disp(name, img, wait = True):
     if wait and WAIT:
         cv2.waitKey()
 
+
 def normalize(img):
     mmin, mmax = np.min(img), np.max(img)
     return np.uint8((img - mmin) * 255.0 / (mmax - mmin))
+
 
 if __name__ == '__main__':
 
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\ext3.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\extA.jpg"""
 
     im = cv2.imread(fname)
-    minsize = min(*im.shape[:2])
-    print "minsize: %d" % minsize
+    maxsize = max(*im.shape[:2])
+    scale = 800.0 / maxsize
+    im = cv2.resize(im, None, fx = scale, fy = scale)
+    print im.shape
 
-    kernel_size = 5 if minsize > 600 else 3
+    kernel_size = 5
 
     imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    imgray = normalize(imgray)
+    mblur = imgray
     mblur = cv2.medianBlur(imgray, kernel_size)
     mblur = normalize(mblur)
 
@@ -42,6 +48,7 @@ if __name__ == '__main__':
     dil = thr
     kernel = np.ones((3, 3))
     dil = cv2.dilate(thr, kernel)
+    # dil = cv2.erode(dil, kernel)
 
     disp("dil", dil)
 
