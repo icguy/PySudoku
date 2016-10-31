@@ -53,7 +53,7 @@ def test():
     cv2.imshow("fn.png", img)
     cv2.waitKey()
 
-def extract_digit(img, invert = False, skip_bg = False):
+def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = False):
     """
 
     :param img:
@@ -111,7 +111,7 @@ def extract_digit(img, invert = False, skip_bg = False):
     # bounding box
     U, D, L, R = get_bounding_box(img)
 
-    img = warp_bounding(U, D, L, R, img_norm)
+    img = warp_bounding(U, D, L, R, img_norm, preserveAspectRatio=preserveAspectRatio)
     return img
 
 def get_bounding_box(img, value = 255):
