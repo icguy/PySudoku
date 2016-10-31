@@ -2,6 +2,31 @@ import numpy as np
 import cv2
 from OCR import *
 
+def test():
+    img = cv2.imread("""D:/dokumentumok/opencv/sources/samples/python2/data/digits.png""", 0)
+    img2 = img
+    for i in range(50):
+        for j in range(100):
+            pic = img[i * 20 : (i+1) * 20, j * 20 : (j+1) * 20]
+            pic = 255 - extract_digit(pic, True, True)
+            # cv2.imshow("", pic)
+            # cv2.waitKey()
+            img2[i * 20 : (i + 1) * 20, j * 20 : (j + 1) * 20] = pic
+    cv2.imwrite("digits4.png", img2)
+
+
+    img = cv2.imread("""images/9_1.png""", 0)
+    img = cv2.imread("""images/1.png""", 0)
+    # img = cv2.imread("""images/img1_2.jpg""", 0)
+    # img = cv2.imread("""images/blob_test.png""", 0)
+    # img = cv2.imread("""images/blob_test2.png""", 0)
+    # img = cv2.imread("""images/blob_test3.png""", 0)
+
+    img = extract_digit(img)
+
+    cv2.imshow("fn.png", img)
+    cv2.waitKey()
+
 if __name__ == '__main__':
     # test()
     # exit()
