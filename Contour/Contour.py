@@ -3,7 +3,7 @@ import numpy as np
 from pprint import pprint
 
 DISP = True
-WAIT = True
+WAIT = False
 
 def disp(name, img, wait = True):
     if DISP:
@@ -11,19 +11,11 @@ def disp(name, img, wait = True):
     if wait and WAIT:
         cv2.waitKey()
 
-
 def normalize(img):
     mmin, mmax = np.min(img), np.max(img)
     return np.uint8((img - mmin) * 255.0 / (mmax - mmin))
 
-
-if __name__ == '__main__':
-
-    fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\extA.jpg"""
-
-    im = cv2.imread(fname)
+def find_contour(im):
     maxsize = max(*im.shape[:2])
     scale = 800.0 / maxsize
     im = cv2.resize(im, None, fx = scale, fy = scale)
@@ -72,6 +64,20 @@ if __name__ == '__main__':
     #     rv, rvec, tvec = cv2.solvePnP(marker_corners, c, np.eye(3), None, flags=cv2.CV_ITERATIVE)
     #     print tvec, rvec
 
+    newcontours = map(lambda c : (c / scale).astype("int"), contours)
+
+    return [max(newcontours, key = lambda c : cv2.contourArea(c))]
+
+if __name__ == '__main__':
+
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\ext1.jpg"""
+
+    im = cv2.imread(fname)
+    contours = find_contour(im)
+    print contours
 
     cv2.drawContours(im, contours, -1, (255, 0, 0), 3)
     disp("im", im)
+    cv2.waitKey()
