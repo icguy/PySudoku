@@ -32,6 +32,8 @@ def find_contour(im):
     disp("mbl", mblur)
 
     thr = cv2.adaptiveThreshold(mblur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, kernel_size, 10)
+    kernel = np.ones((3, 3))
+    thr = cv2.erode(thr, kernel)
     thr2 = cv2.Canny(mblur, 30, 150)
     thr = thr | thr2
 
@@ -39,24 +41,17 @@ def find_contour(im):
 
     dil = thr
     kernel = np.ones((3, 3))
-    dil = cv2.dilate(thr, kernel)
+    # dil = cv2.dilate(thr, kernel)
     # dil = cv2.erode(dil, kernel)
 
     disp("dil", dil)
 
-    contours, hierarchy = cv2.findContours(dil,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    contours = extract_contours(dil)
+    if len(contours) == 0:
+        dil = cv2.dilate(dil, kernel)
+        contours = extract_contours(dil)
 
-    # print  len(contours)
-    # contours = [c for c in contours if c.shape[0] > 3]
-    print  len(contours)
-    h, w, ch = im.shape
-    area = h * w
-    contours = [c for c in contours if cv2.contourArea(c) > area / 8]
-    print  len(contours)
-    contours = [cv2.approxPolyDP(c, 20, True) for c in contours]
-    print  len(contours)
-    contours = [c for c in contours if c.shape[0] == 4]
-    print  len(contours)
+
 
     # marker_corners = np.array([[0,0,0],[1, 0, 0], [1,1, 0], [0,1, 0]], dtype=np.float32)
     # for c in contours:
@@ -65,8 +60,27 @@ def find_contour(im):
     #     print tvec, rvec
 
     newcontours = map(lambda c : (c / scale).astype("int"), contours)
+    if len(newcontours) == 0:
+        return []
 
     return [max(newcontours, key = lambda c : cv2.contourArea(c))]
+
+
+def extract_contours(dil):
+    contours, hierarchy = cv2.findContours(dil, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    # print  len(contours)
+    # contours = [c for c in contours if c.shape[0] > 3]
+    print  len(contours)
+    h, w = dil.shape
+    area = h * w
+    contours = [c for c in contours if cv2.contourArea(c) > area / 8]
+    print  len(contours)
+    contours = [cv2.approxPolyDP(c, 20, True) for c in contours]
+    print  len(contours)
+    contours = [c for c in contours if c.shape[0] == 4]
+    print  len(contours)
+    return contours
+
 
 if __name__ == '__main__':
 
@@ -80,4 +94,5 @@ if __name__ == '__main__':
 
     cv2.drawContours(im, contours, -1, (255, 0, 0), 3)
     disp("im", im)
-    cv2.waitKey()
+    if not WAIT:
+        cv2.waitKey()
