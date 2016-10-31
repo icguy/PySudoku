@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
-    fname = """D:\dokumentumok\Python\PySudoku\images\ext1.jpg"""
+    fname = """D:\dokumentumok\Python\PySudoku\images\ext3.jpg"""
 
     im = cv2.imread(fname)
     minsize = min(*im.shape[:2])
@@ -44,8 +44,8 @@ if __name__ == '__main__':
 
     contours, hierarchy = cv2.findContours(dil,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    print  len(contours)
-    contours = [c for c in contours if c.shape[0] > 3]
+    # print  len(contours)
+    # contours = [c for c in contours if c.shape[0] > 3]
     print  len(contours)
     h, w, ch = im.shape
     area = h * w
@@ -56,11 +56,11 @@ if __name__ == '__main__':
     contours = [c for c in contours if c.shape[0] == 4]
     print  len(contours)
 
-    marker_corners = np.array([[0,0,0],[1, 0, 0], [1,1, 0], [0,1, 0]], dtype=np.float32)
-    for c in contours:
-        c = np.float32(c.reshape(-1, 2))
-        rv, rvec, tvec = cv2.solvePnP(marker_corners, c, np.eye(3), None, flags=cv2.CV_ITERATIVE)
-        print tvec, rvec
+    # marker_corners = np.array([[0,0,0],[1, 0, 0], [1,1, 0], [0,1, 0]], dtype=np.float32)
+    # for c in contours:
+    #     c = np.float32(c.reshape(-1, 2))
+    #     rv, rvec, tvec = cv2.solvePnP(marker_corners, c, np.eye(3), None, flags=cv2.CV_ITERATIVE)
+    #     print tvec, rvec
 
 
     cv2.drawContours(im, contours, -1, (255, 0, 0), 3)
