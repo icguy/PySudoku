@@ -1,6 +1,11 @@
 import numpy as np
 import cv2
+from Contour.Contour import normalize
 
+DISP = False
+def disp(title, img):
+    if DISP:
+        cv2.imshow(title, img)
 
 def inBounds(img, r, c):
     h, w = img.shape[0], img.shape[1]
@@ -34,6 +39,10 @@ def indexObjects(img):
                         toCheck.append((cc + 1, cr))
                         toCheck.append((cc, cr - 1))
                         toCheck.append((cc, cr + 1))
+                        toCheck.append((cc - 1, cr - 1))
+                        toCheck.append((cc + 1, cr + 1))
+                        toCheck.append((cc + 1, cr - 1))
+                        toCheck.append((cc - 1, cr + 1))
 
                     toCheck.pop(0)
 
@@ -53,18 +62,27 @@ def test():
     cv2.imshow("fn.png", img)
     cv2.waitKey()
 
-def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = False):
+def get_gaussian(size):
+    h, w = size
+    kernel_horiz = cv2.getGaussianKernel(w if w % 2 == 1 else w + 1, -1)
+    kernel_vert = cv2.getGaussianKernel(h if h % 2 == 1 else h + 1, -1)
+    kernel = kernel_vert * kernel_horiz.T
+
+    return kernel[0:h, 0:w]
+
+def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = False, newsize=(20, 20)):
     """
-    :param img:
+    :param img: should be grayscale
     :param invert: True if background is black (zero), foreground is white (255)
     :param skip_bg: set True if there's only the digit itself in the image no other BLOB-s
-    :return:
+    :return: the extracted digit image or None if digit not present
     """
     h, w = img.shape
     if invert: img = 255 - img
     mmin, mmax = np.min(img), np.max(img)
     img_norm = np.uint8((img - mmin) * 255.0 / (mmax - mmin))
     r, img = cv2.threshold(img_norm, 128, 255, cv2.THRESH_BINARY)
+    disp("thr", img)
 
     if not skip_bg:
         # finding largest background
@@ -97,20 +115,43 @@ def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = Fa
         if mmax > 0:
             outside = np.uint8((outside - mmin) * 255.0 / (mmax - mmin))
         outside = outside[1:-1, 1:-1]
-
         # erasing bg
         background = largeBg + outside
-        img = img + background
+        img[background == 255] = 255
+        disp("bbox", img)
+
+        #searching for biggest blob
+        positive_img = 255 - img
+        disp("positive_img", positive_img)
+        blob_indices, num = indexObjects(positive_img)
+        if num < 2:
+            return None # no blobs found
+
+        # disp("blob indices", normalize(blob_indices))
+        dil = cv2.dilate(positive_img, (3, 3))
+        # dil = positive_img
+        img_weighted = np.multiply(dil, get_gaussian(dil.shape))
+        sizes = [img_weighted[blob_indices == i].sum() for i in range(1, num)]
+        maxSize = max(sizes)
+        maxIdx = sizes.index(maxSize) + 1
+        if maxSize < 2:
+            return None # nothing big in the middle
+
+        img[blob_indices != maxIdx] = 255
+        disp("final img", img)
+
     img = 255 - img
 
-    # cv2.imshow("i", img)
-    # cv2.waitKey()
-
-
     # bounding box
-    U, D, L, R = get_bounding_box(img)
+    udlr = get_bounding_box(img)
+    if udlr is None:
+        return None
+    U, D, L, R = udlr
+    print D-U, R-L
+    if min(D-U, R-L) < 4:
+        return None # too little bounding box, probably false detection
 
-    img = warp_bounding(U, D, L, R, img_norm, preserveAspectRatio=preserveAspectRatio, bgColor = 255 if invert else 0)
+    img = warp_bounding(U, D, L, R, img_norm,newsize, preserveAspectRatio, 255 if invert else 0)
     return img
 
 def get_bounding_box(img, value = 255):
@@ -118,16 +159,18 @@ def get_bounding_box(img, value = 255):
 
     :param img:
     :param value: the value to search for
-    :return: U, D, L, R params of bounding rectangle
+    :return: U, D, L, R params of bounding rectangle, nonne, if image is blank
     """
     h, w = img.shape
     U = h
     D = 0
     L = w
     R = 0
+    found = False
     for r in range(h):
         for c in range(w):
             if img[r, c] == value:
+                found = True
                 if r < U:
                     U = r
                 if r > D:
@@ -136,7 +179,7 @@ def get_bounding_box(img, value = 255):
                     L = c
                 if c > R:
                     R = c
-
+    if not found: return None
     return U, D, L, R
 
 def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20), preserveAspectRatio = False, bgColor = 0):
@@ -148,7 +191,6 @@ def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20), preserveAspectRatio 
         D = centery + side / 2
         L = centerx - side / 2
         R = centerx + side / 2
-        # print U, D, L, R
 
     pts1 = np.float32([[L, U], [R, U], [R, D]])
     pts2 = np.float32([[0, 0], [w, 0], [w, h]])
@@ -209,7 +251,7 @@ if __name__ == '__main__':
     print correct, result.size
 
 
-    img = cv2.imread("""images/9_2.png""", 0)
+    img = cv2.imread("""images/9_3.png""", 0)
     img = extract_digit(img)
     img = 255-img
     cv2.imshow("i", img)
