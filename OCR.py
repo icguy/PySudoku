@@ -110,7 +110,7 @@ def extract_digit(img, invert = False, skip_bg = False, preserveAspectRatio = Fa
     # bounding box
     U, D, L, R = get_bounding_box(img)
 
-    img = warp_bounding(U, D, L, R, img_norm, preserveAspectRatio=preserveAspectRatio)
+    img = warp_bounding(U, D, L, R, img_norm, preserveAspectRatio=preserveAspectRatio, bgColor = 255 if invert else 0)
     return img
 
 def get_bounding_box(img, value = 255):
@@ -139,9 +139,9 @@ def get_bounding_box(img, value = 255):
 
     return U, D, L, R
 
-def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20), preserveAspectRatio = False):
+def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20), preserveAspectRatio = False, bgColor = 0):
+    w, h = newsize
     if preserveAspectRatio:
-        w, h = newsize
         side = max(D-U, R-L)
         centerx, centery = ((L + R)/2.0, (U + D)/2.0)
         U = centery - side / 2
@@ -153,7 +153,7 @@ def warp_bounding(U, D, L, R, img_norm, newsize = (20, 20), preserveAspectRatio 
     pts1 = np.float32([[L, U], [R, U], [R, D]])
     pts2 = np.float32([[0, 0], [w, 0], [w, h]])
     trf = cv2.getAffineTransform(pts1, pts2)
-    return cv2.warpAffine(img_norm, trf, (w, h))
+    return cv2.warpAffine(img_norm, trf, (w, h), borderMode=cv2.BORDER_CONSTANT, borderValue=bgColor)
 
 def get_cog(img):
     h, w = img.shape
