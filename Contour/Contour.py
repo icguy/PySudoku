@@ -11,6 +11,10 @@ def disp(name, img, wait = True):
     if wait and WAIT:
         cv2.waitKey()
 
+def normalize(img):
+    mmin, mmax = np.min(img), np.max(img)
+    return np.uint8((img - mmin) * 255.0 / (mmax - mmin))
+
 if __name__ == '__main__':
 
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
@@ -25,8 +29,7 @@ if __name__ == '__main__':
 
     imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
     mblur = cv2.medianBlur(imgray, kernel_size)
-    mmin, mmax = np.min(mblur), np.max(mblur)
-    mblur = np.uint8((mblur - mmin) * 255.0 / (mmax - mmin))
+    mblur = normalize(mblur)
 
     disp("mbl", mblur)
 
