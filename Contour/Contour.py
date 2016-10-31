@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from pprint import pprint
 
-DISP = True
+DISP = False
 WAIT = False
 
 def disp(name, img, wait = True):

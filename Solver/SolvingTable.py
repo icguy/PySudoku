@@ -136,3 +136,6 @@ class SolvingTable:
 
     def copytable2(self, table):
         return [[t.Value for t in row] for row in table]
+
+    def getTable(self):
+        return [[t.Value for t in row] for row in self.tileTable]
