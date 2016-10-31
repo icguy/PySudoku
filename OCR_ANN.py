@@ -8,7 +8,7 @@ def test():
     for i in range(50):
         for j in range(100):
             pic = img[i * 20 : (i+1) * 20, j * 20 : (j+1) * 20]
-            pic = 255 - extract_digit(pic, True, True)
+            pic = 255 - extract_digit(pic, True, True, True)
             # cv2.imshow("", pic)
             # cv2.waitKey()
             img2[i * 20 : (i + 1) * 20, j * 20 : (j + 1) * 20] = pic
