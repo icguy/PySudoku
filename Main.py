@@ -1,9 +1,10 @@
-from Solver.SolvingTable import SolvingTable
-from Contour.Contour import find_contour
-from Transform import transform
-from OCR import extract_digit
 import cv2
 import numpy as np
+
+from Contour import find_contour
+from OCR import extract_digit
+from Solver.SolvingTable import SolvingTable
+from Transform import transform
 
 def test_solvingtable():
     table = [[-1 for i in range(9)] for j in range(9)]
@@ -62,6 +63,7 @@ if __name__ == '__main__':
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_3.jpg"""
     # fname = """D:\dokumentumok\Python\PySudoku\images\extA.jpg"""
+    fname = """D:/asztal/temp/sdk.jpg"""
 
     im = cv2.imread(fname)
     contour = find_contour(im)

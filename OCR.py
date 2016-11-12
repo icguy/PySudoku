@@ -1,6 +1,5 @@
-import numpy as np
 import cv2
-from Contour.Contour import normalize
+import numpy as np
 
 DISP = False
 def disp(title, img):

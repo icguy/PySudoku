@@ -17,7 +17,6 @@ def order_pts(contour):
     indices = np.argmax(corresp, 0)
     return np.array([pts[indices[i],:] for i in range(4)], dtype="float32").reshape((4, 2))
 
-
 def transform(img, contour, newsize = (450, 450)):
     src_pts = order_pts(contour)
 
@@ -27,7 +26,6 @@ def transform(img, contour, newsize = (450, 450)):
     print dest_pts
     trf = cv2.getPerspectiveTransform(src_pts, dest_pts)
     return cv2.warpPerspective(img, trf, newsize), trf
-
 
 if __name__ == '__main__':
     transform(None, [np.array([[-5, -5], [4, -6], [-3, 5], [4, 4]])])
