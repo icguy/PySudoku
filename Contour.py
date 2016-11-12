@@ -65,7 +65,6 @@ def find_contour(im):
 
     return [max(newcontours, key = lambda c : cv2.contourArea(c))]
 
-
 def extract_contours(dil):
     contours, hierarchy = cv2.findContours(dil, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     # print  len(contours)
@@ -81,9 +80,7 @@ def extract_contours(dil):
     print  len(contours)
     return contours
 
-
 if __name__ == '__main__':
-
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_1_rot.png"""
     fname = """D:\dokumentumok\Python\PySudoku\images\img1_6.jpg"""
     fname = """D:\dokumentumok\Python\PySudoku\images\ext1.jpg"""
